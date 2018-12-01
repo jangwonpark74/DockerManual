@@ -4,8 +4,8 @@
  - $ sudo apt-get update
  - $ sudo apt install docker-ce
 
-### install a specific version of docker ce
- - $ sudo apt-get install docker-ce=<VERSION>
+### install a specific version of docker-ce
+ - $ sudo apt-get install docker-ce=\<VERSION\>
 
 ## Add Docker's official GPG key:
  $ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -

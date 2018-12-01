@@ -44,5 +44,11 @@
 ## Add self to the docker group
  - $ sudo gpasswd -a myusername docker
 
+## update docker client to know docker host
+ - $ docker -H localhost:2375 images
+
+## persistent env update
+ - echo "export DOCKER_HOST=localhost:2375" >> ~/.bash_profile
+
 ## Delete all stopped containers
  - $ docker rm $(docker ps -a -q)

@@ -1,0 +1,306 @@
+Docker 사용방법 
+프로그래밍 
+설정
+
+# Docker(도커)란 무엇인가?
+http://www.slideshare.net/pyrasis/docker-docker-38286477
+OS에 부담을 주지 않는 매우 효율이 좋은 가상화 도구
+VM보다 훨씬 구조가 간단함. 기본 OS 99% 의 성능을 냄
+
+결론적으로 얘기하자면, 나는 도커에서 지금까지 실행하지 못한 기능이 하나도 없었다.
+redis도 성공했고, sftp도 성공하였다.
+
+# docker에서 쓰이는 용어
+도커 이미지: 미리 임의의 환경을 구워놓은 이미지파일
+도커 컨테이너 : 도커가 실행중인 프로세스
+
+
+# docker 설치
+(sudo apt-get install docker.io (이렇게하면, 구버전이 설치된다.))
+
+다음을 참조하여 docker를 설치한다. https://docs.docker.com/engine/installation/linux/ubuntulinux/
+14.04 에서의 docker 최신버전(1.12.1) 설치를 요약하자면,
+
+sudo apt-get update
+sudo apt-get install apt-transport-https ca-certificates
+sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+
+sudo printf "deb https://apt.dockerproject.org/repo ubuntu-trusty main" >> /etc/apt/sources.list.d/docker.list
+
+sudo apt-get update
+sudo apt-get purge lxc-docker
+sudo apt-cache policy docker-engine
+
+sudo apt-get install -y linux-image-extra-$(uname -r) linux-image-extra-virtual
+sudo apt-get install -y docker-engine
+그리고나서 반드시 ssh(putty)를 껏다가 재접속 해야함.
+그 다음 바로 아래부분의, groupadd 하는 부분도 추가해 줄것
+
+#sudo service docker start 안해도 이미 실행중이네
+
+#설치 테스트하기
+sudo docker run hello-world
+sudo docker version
+
+# docker 명령어 사용시 sudo를 매번 붙이지 않게 하려면 : OS에서 아래의 유저 권한을 한 번 줘버리면 해결됨. 아래와 같이 리눅스의 groupadd명령어로 도커를 추가해버리면 된다.
+sudo groupadd docker
+sudo gpasswd -a ${USER} docker # USER는 docker를 실행할 username을 뜻함
+sudo service docker restart
+(Cannot connect to the Docker daemon. Is the docker daemon running on this host? 이러한 에러 메시지가 뜬다면, 그것은 sudo 권한이 없어서 생긴 일이다. )
+
+# docker upgrade
+sudo apt-get upgrade docker-engine
+
+
+# docker 사용 방법 메뉴얼
+https://gist.github.com/nacyot/8366310
+https://github.com/wsargent/docker-cheat-sheet
+
+
+# docker 이미지들
+- 다음의 github에는 왠만한 머신러닝 라이브러리를 전부 도커파일로 설치하게 만들어놨음. 
+https://github.com/Kaixhin/dockerfiles
+(tensorflow gpu의 도커)
+https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/docker/Dockerfile.gpu
+
+
+# docker 기본 명령어
+docker info : docker 가 설치된 환경이나 남은 용량 등을 확인 할 수 있다.
+docker -v : 버전 확인
+docker inspect 컨테이너ID : 해당 컨테이너의 정보 조사(label 등)
+label : 도커에 일종의 태그를 커스텀하게 달 수 있는 기능. 이것을 이용해 ps 할 때 filtering을 하거나 할 수 있음.
+
+docker -H 주소 ps : 해당 ip의 container를 확인
+
+docker logs --tail 100 ContainerID : 해당 컨테이너의 로그 출력
+
+# docker 이미지 다운 받기
+docker pull kaixhin/cuda-theano
+(https://hub.docker.com/r/kaixhin/cuda-theano/ 에서 받아오는 것임)
+docker pull b.gcr.io/tensorflow/tensorflow:latest-devel-gpu 을 쳐서 gpu를 지원하는 텐서플로우를 받는다
+(https://www.tensorflow.org/versions/master/get_started/os_setup.html)
+
+- docker를 켰을 때 보여줄 root로 사용할 임의의 dir을 만든다.(context라고 하는듯)
+
+- 그 dir안에 Dockerfile 을 만들고 입력한다.
+이 도커파일을 대충 원래 설치방식대로 막하면 높은 확률로 에러가 뜸. 꼭 남이 도커파일 만들어 놓은데서 긁어올 것
+
+
+- 같은 dir안에 .dockerignore 파일을 생성하고, 하위 이미지에서 설치하지 않을 대상을 지정한다.(정규식으로)
+(https://docs.docker.com/engine/reference/builder/#dockerignore-file)
+
+
+
+- docker 이미지 만들기
+docker file이 들어있는 폴더에 들어간 다음 다음을 입력한다. (sudo 계정으로 해야만 되는듯)
+docker build --rm -t imcomking/bi_tensorflow -f Dockerfile_tensorflow .
+docker build --rm -t imcomking/ttsk -f Dockerfile_ttsk .
+
+
+(From 으로 가져올 때, pull 일일이 안해도 알아서 풀링해오네)
+
+(.은 필수임. 이게 현재 폴더를 context로 하겠다는 뜻임)
+(-f 다음에는 도커파일의 위치를 설정)
+(-t 는 생성한 이미지를 저장시킬 repository 이름임)
+(--rm 은 빌드하는 과정에 생긴 임시 컨테이너를 자동으로 삭제해줌)
+
+
+# Run 명령어 예시
+docker run -it --net=host --device /dev/nvidiactl --device /dev/nvidia-uvm --device /dev/nvidia0 imcomking/bi_deeplearning
+
+- Run 옵션들
+-it 를 해야 컨테이너가 종료안되고 정상 실행된다
+-e 옵션은 환경변수를 설정하는 것이다. ex) -e USER=user -e PASS=pass 
+-v <host_dir>:<container_dir>) 이 옵션을 사용하면, container에다가 해당 host 경로를 추가시켜줄 수 있음. 즉 컨테이너에게 data 폴더를 넣어주는 역할이라고 볼 수 있음. 즉 저장공간을 컨테이너내부와 외부에 공유하는 기능이다.
+--net=host : 이 옵션을 추가해야만 컨테이너에서 인터넷이 되는걸로 무언가 도커에서 패치가 된듯하다.
+--device /dev/nvidiactl --device /dev/nvidia-uvm --device /dev/nvidia0 이것은 nvidia gpu를 쓰기위한 옵션이다. 이중 nvidia-uvm 모듈은 , nvidia-smi를 한 번 실행시켜주면 생긴다. 혹은 그래도 nvidia-uvm을 찾을 수 없다는 에러가 뜨면 다음을 시도해본다.
+sudo apt-get install nvidia-modprobe
+sudo modprobe nvidia-uvm
+sudo mknod -m 666 /dev/nvidia-uvm c 250 0
+--rm : 도커 컨테이너에서 컨트롤 pq 나오게 되면 자동으로 종료 하는 옵션(따라서 restart한 다음 attach해야함)
+--name : 컨테이너 이름 설정. 이 명령어가 좋은 점은 같은 이름의 컨테이너를 2개 만들 수 없다는 점이다. 이를 이용해서 한 사용자가 하나의 컨테이너만 소유하게 할 수 있다. 2개를 생성하려하면 다음과 같은 에러가 뜬다.
+    docker: Error response from daemon: Conflict. The name "/bilab" is already in use by container ~~~
+--label : docker ps에서 했을 때, 특정 컨테이너만 볼 수 있게 label로 필터링하기 위해서, 컨테이너에 태깅
+Ex) docker ps에서 label을 이용해 필터링 하기
+docker ps -a --filter="label=username=$USER"
+이런식으로 filter옵션을 주어 레이블링 해둔 컨테이너만 확인이 가능
+
+
+# ttsk image의 container 생성하기
+docker run -it --device /dev/nvidiactl --device /dev/nvidia-uvm --device /dev/nvidia0 -p 22 -p 6006 -p 8888 imcomking/ttsk
+
+
+# Container volume mount된 host 경로 알아내기
+sudo docker inspect -f '{{ .Mounts }}' containerID
+# Container start command 알아내기
+sudo docker inspect -f '{{ .Config.Cmd }}' containerID
+# Container NetworkMode 알아내기
+sudo docker inspect -f '{{ .HostConfig.NetworkMode }}' containerID
+# 다른 Process를 돌리고 있는 container에 bash접속하기
+sudo docker exec -it containerIDbash
+
+- docker push 로 docker hub에 올리기
+(참고: https://docs.docker.com/docker-hub/repos/)
+
+요약하면 먼저 https://hub.docker.com/ 에 회원 가입을 한 다음, repository 새로 만든 뒤 리눅스 커멘드에서 다음을 입력
+docker login
+(아이디, 비번, 이메일 입력)
+docker push 아이디/이미지이름
+(이때 반드시 docker hub의 repository에 작성한 이름, 내 로컬 이미지의 이름만은 반드시 같아야한다.)
+
+- 이미지에 태그를 달기
+docker tag 345d03e79a10 imcomking/allinone:devel
+
+
+
+
+--------- 기타 docker 명령어 ---------
+docker search tensorflow : git에 등록된 tensorflow docker검색
+docker images : 이미지 리스트 확인
+docker rmi 이미지이름: 이미지 삭제하기 (-f를 붙이면 강제 삭제)
+
+docker ps -a : 실행중인 컨테이너(도커 instance = 프로세스) 확인
+docker rm 컨테이너이름: 컨테이너 삭제
+docker rm `docker ps -aq` : 모든 컨테이너 삭제 (-f를 붙이면 강제 삭제, 작은따옴표 아님. 물결표시아래에 있는 ` 이거임)
+
+docker restart 컨테이너이름: 재시작
+docker attach 컨테이너이름: 재접속
+docker start 컨테이너이름: 프로세스 시작
+docker stop 컨테이너이름: 프로세스 정지
+
+exit : 도커 나가기, 단 백그라운드에 뭐가 돌고있으면 안됨.
+
+
+screen 만들 때 반드시 환경변수가 잘 설정되도록 해야함. 아래 처럼생성
+screen -S ipython -s -/bin/bash
+ http://superuser.com/questions/114264/gnu-screen-wont-inherit-my-path-on-10-5-8
+
+
+뭔가 이상하게 죽은 screen 제거시
+screen -wipe
+
+
+docker -H tcp://localhost:1847 ps -a : 메인서버에서 노드들의 swarm까지 켜져있는 모든 거 확인
+docker -H tcp://localhost:1847 rm `docker -H tcp://localhost:1847 ps -aql` : 모든 서버노드들의 컨테이너를 위에서부터 하나씩 삭제
+aql하면, latest 컨테이너부터 하나씩 삭제함
+
+ctrl + z : background로 넣어 놓기
+ctrl + d : python 종료
+
+jobs : background 보기
+fg : foreground로보기
+
+
+
+현재 컨테이너를 새로 image로 구워서 저장하기.
+(기본적으로 이미지 생성은 build를 써야함. 이 명령어는 사용중인 컨테이너를 백업하는용도임)
+따라서 이미지를 새로 생성 할 때, 반드시 :tag 를 사용해서 구분을 해주어야 할듯.
+docker commit -c "EXPOSE 12345"  컨테이너이름 imcomking/bi_tensorflow:dhkwak
+
+docker -H tcp://localhost:1847 push imcomking/bi_tensorflow:dhkwak
+이렇게 해서 변경된 컨테이너가 반영된 이미지를 다시 굽고, run을 다시 실행시키면 됨.
+run 할 때, 포트옵션을 추가해주면, 추가된 상태로 다시 열림
+
+bicl new --gpu -p 22 -p 6006 -p 8888 --name dhkwak_tensorflow imcomking/bi_tensorflow
+
+
+
+## Advanced topic ###
+# Docker Container 가 저장되는 위치/방법/크기수정
+일단, 모든 도커 이미지와 컨테이너는 다음 경로 아래에 위치한다.
+/var/lib/docker/~~~~
+그런데 이중에서 컨테이너는 기본값으로 총 100GB만 사용할 수 있고, 각 컨테이너는 10GB만 사용이 가능하다. 그리고 docker에서는 이 컨테이너들의 용량을 효율적으로 다루기 위해 Device Mapper plugin 을 이용한 thin provisioning을 사용한다. 이 기능은 총 100GB의 용량으로 10GB짜리를 1000개 이상 만들 수 있는 방법이다.
+또한 thin target은 snapshot의 역할도 하며, data랑 metadata 두군데로 나누어 큰 거 / 작은거(공통) 이런식으로 관리하는 것 같다.
+하여튼 이 기본 용량을 100GB보다 키우려면 다음 문서의 #We need a bigger pool 부분을 참조.
+http://jpetazzo.github.io/2014/01/29/docker-device-mapper-resize/
+
+# Docker Container 용량이 부족할 때 해결방법 : 이경우 다음과 같은 에러가 뜬다.
+ Error running DeviceCreate (createSnapDevice) dm_task_run failed
+다음 글에서 제안하는 thin_check 기능을 사용하면 해결이 가능하다는 것 같음.
+http://stackoverflow.com/questions/24709741/cant-run-docker-container-due-device-mapper-error
+
+
+혹은 다음 방식으로, 컨테이너를 전부 삭제하기도 하나보다. ( 작업 중인거 전부 삭제되니 주의할 것)
+# kill -9 $(lsof -t -c docker)
+# rm -rf /var/lib/docker/*
+# reboot
+https://github.com/docker/docker/issues/6325
+
+
+# Docker Container 를 저장하는 경로 바꾸기 :
+다음 방법처럼 도커 데몬을 멈추고, 도커파일을 복사 후 링크를 연결하면 된다는 듯하다.
+http://blog.eye48.com/post/98551740424/when-dockerio-eats-up-your-disc-space
+
+혹은 다음 방법으로 , 도커 데몬을 실행할 때 -g 옵션을 주면 경로를 바꿀 수 있다고 한다.
+http://kisow.github.io/blog/2015/10/28/docker-image-gyeongro-byeongyeonghagi/
+
+
+# Docker Container 를 저장하는 방식 바꾸기 :
+도커 데몬을 실행할 때, -s overlayfs 옵션을 주면 덮어씌운다고 한다.
+http://grokbase.com/t/gg/docker-user/1563fzdtm7/docker-docker-runs-out-of-space-when-trying-to-create-a-new-image
+
+
+# Docker swarm 과 demon 그리고 nvidia-docker:
+먼저 docker demon은 docker를 실행시키면 항상 백그라운드로 돌고있는 프로세스이다. swarm이나 다른 것과 무관하게 그냥 도커시스템 자체를 demon이 실행되어야하고, 이것이 모든 컨테이너 등의 명령어를 관리한다.
+swarm은 docker container들을 원격으로 연결해서 클라우드처럼 활용할 수 있게 해주는 기능이다. 원격으로 docker run을 실행시키고, 명령어를 원격으로 전달할 수 있게 해준다. 이 swarm은 그냥 생성된 container들을 원격에서도 접속할 수 있게 해주는 기능이다. 따라서 container가 원격으로 작업할 수 있게 세팅만 되어있다면, 바로 원격사용이 가능하다. 
+(그런데 docker에서는 새로운 기능을 추가할 때 container단위로 실행시키는 방식(백그라운드 프로세스처럼)의 철학을 가진 프레임워크이다. 따라서 swarm을 실행시킨다는 것은 swarm 컨테이너를 만들고 그것을 실행시키는 개념이 된다.)
+
+nvidia-docker는 host에 설치된 cuda버전을 여러개 깔고, 실행시키는 이미지에 따라서 저절로 cuda버전이 host에서 바뀌도록 해주는 툴이다. 실제 구현은 그냥 docker api를 wrapping하는 식으로 구현되어 있다. 그래서 nvidia-docker run을 하는 것은 실제로는 그냥 docker run인데 다만 몇가지 옵션이 들어가 있는 것이다.
+그래서 swarm과 nvidia-docker는 같이 사용할 수가 있다. nvidia-docker에 구현된 원격 nvidia-docker run함수를 이용해서 원격에 container를 생성하면, 자동으로 swarm에 의해서 원격사용이 가능해진다.(swarm세팅이 되어있고 swarm 컨테이너가 작동중이라면)
+그래서 궁극적으로 이 시스템들을 이용하면 아주 훌륭한 딥러닝 GPU 클라우드(클러스터) 시스템 구축이 가능하다.
+
+
+# Named Volume: 도커에서 데이터를 저장하기 위해 사용하는 특수한 Directory
+도커는 영구적으로 사용되는 데이터들을 매번 컨테이너에 중복 할당하는 일을 막기 위해, 또는 동일한 데이터를 컨테이너들끼리 공유하기 위해 volume이라는 시스템을 사용한다. 즉 컨테이너가 volume에 해당하는 경로에 데이터를 저장하면, 이 데이터는 다른 컨테이너도 사용이 가능하다. 
+즉, 중복된 데이터를 사용할 경로를 volume이라는 형태로 따로 관리하고, 이를 각 컨테이너들이 mount해서 사용한다고 이해할 수 있다. Volume을 쓰면 백업이 보다 용이하고, 볼륨의 사이즈는 컨테이너의 사이즈와 무관하게 따로 관리되므로 컨테이너가 작은 용량만을 사용해도 문제가 없게 된다.
+https://docs.docker.com/engine/admin/volumes/volumes/
+docker volume ls : 현재 만들어둔 volume 확인
+docker volume inspect [볼륨이름] : 해당 볼륨에 대한 내용 확인
+docker volume create [볼륨이름] : 볼륨 생성
+docker volume rm [볼륨이름] : 볼륨 삭제
+
+또한 docker run 명령어에서 -v 또는 --mount 옵션을 통해 컨테이너에 미리 할당해둔 volume을 사용하게 할 수 있다.(--mount 옵션이 보다 사용이 어려운 고급 옵션이다.)
+docker run -v [볼륨이름]:[컨테이너에 마운트할 경로] 
+이런식으로 컨테이너에 미리 만들어둔 볼륨을 연결할 수 있다. 그런데 만약 현재 존재하지 않는 볼륨 이름을 지정하면, docker가 알아서 해당 이름의 volume을 만들고, [컨테이너에 마운트할 경로] 에 있는 데이터를 volume에 복사하게 된다.
+
+# Bind mounts
+지금까지 알아본 volume의 기능은 특수한 데이터 공유용 디렉토리를 생성하는 것이었다. 그렇다면 이번에는 Host에 있는 디렉토리나 파일을 container내부에 직접 연결시키는 Bind mounts 기능을 알아보자. 사용
+https://docs.docker.com/engine/admin/volumes/bind-mounts/
+docker run -v [Host의 파일경로]:[컨테이너에 마운트할 경로]
+ex) docker run -v "$(pwd)"/dataset:/app/dataset
+* 이때 주의할 점은, Bind mounts와 volume의 문법이 같기때문에, pwd등을 입력한 것이 volume이름처럼 혼동되어 버그를 일으킬 수 있다는 점이다.
+
+
+# Windows Docker
+정확한 이름은 Docker for Windows 이다. 이 녀석을 설치한 windows 10에서, WSL ubuntu bash를 사용하면 WSL에서도 docker를 쓸 수 있다. ( WSL에는 ubuntu docker 설치가 불가능하다. 이는 WSL에서 사용하는 방식이 ubuntu kernel을 windows kernel에 맵핑하는 방식인데, docker는 너무 low-level 기능을 사용해서 매핑이 불가능하기 때문이다.)
+
+
+
+# Mounting for Windows Docker
+그런데 Windows에서 WSL을 이용한 ubuntu에서 mount를 하기위해서는 다음과 같은 설정이 필요하다.
+https://docs.docker.com/docker-for-windows/#shared-drives
+이를 안해주면 에러가 뜨거나 작동을 하지 않는다.
+그런데 이 shared drives를 설정하려했으나, firewall 에러가 뜨는 경우 다음링크를 참조.
+
+https://docs.docker.com/docker-for-windows/#firewall-rules-for-shared-drives
+
+## Windows Docker 방화벽문제 해결하기
+1) Microsoft 네트워크용 파일 및 프린터 공유 기능 지우고 재설치하기
+https://blog.olandese.nl/2017/05/03/solve-docker-for-windows-error-a-firewall-is-blocking-file-sharing-between-windows-and-the-containers/
+
+
+2) Whitelist 지정하기
+https://superuser.com/questions/231358/allowing-ip-range-in-windows-firewall
+
+3) C드라이브 공유 옵션 켜기
+https://github.com/docker/for-win/issues/1694
+
+* 기타종합
+https://stackoverflow.com/questions/42203488/settings-to-windows-firewall-to-allow-docker-for-windows-to-share-drive
+
+https://forums.docker.com/t/volume-mounts-in-windows-does-not-work/10693/85
+
+
+## 방화벽을 꺼도 share가 불가능하다는 에러가 뜰 때
+https://answers.microsoft.com/en-us/windows/forum/windows_7-security/an-error-occured-while-trying-to-share-l-access-is/85b773bf-e18c-4d68-a9eb-c765cdf39929
+

@@ -14,6 +14,9 @@
  $ sudo apt-key fingerprint 0EBFCD88
 
 
+## docker daemon이 자동 실행될 수 있도록 설정 
+ - $ sudo systemctl enable docker
+
 ## check it running 
  - $ sudo systemctl status docker
 

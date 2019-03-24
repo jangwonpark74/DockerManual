@@ -1,3 +1,18 @@
+# Docker NetworkID 
+- Added NetworkID for docker inspection
+
+# Docker Network-scoped alias 
+
+```
+$ docker network connect --alias scoped-app local_alias container6
+```
+
+multiple containers can share the same network-scoped alias within the same network
+```
+$ docker run --net=isolated_nw -itd --name=container7 --net-alias app busybox 
+3138c678c123b8799f4c7cc6a0cecc595acbdfa8bf81f621834103cd4f504554
+```
+
 # Docker Client API
 
 ```

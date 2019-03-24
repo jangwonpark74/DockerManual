@@ -1,3 +1,12 @@
+# Docker volumn mount propagation option
+```
+Allow passing mount propagation option shared, slave, or private as volume
+property.
+
+For example.
+docker run -ti -v /root/mnt-source:/root/mnt-dest:slave fedora bash
+```
+
 # seccomp security profile
 - [Secure Computing Mode](https://docs.docker.com/engine/security/seccomp/)
 
